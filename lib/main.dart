@@ -60,8 +60,8 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(listItemsProvider);
-    // final todos = ref.watch(todosNotifierProvider);
+    // final state = ref.watch(listItemsProvider);
+    final todos = ref.watch(todosNotifierProvider);
 
     return ParticleAesthetics(
       builder: (context) {
@@ -69,138 +69,151 @@ class _MyAppState extends ConsumerState<MyApp> {
             darkTheme: ParticleTheme.dark(context),
             themeMode: ThemeMode.dark,
             home: Scaffold(
-              appBar: AppBar(
-                title: const Text('Example'),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: () {
-                      // Clear all data in the state and the DB
-                      ref.read(todosNotifierProvider.notifier).clearAllData();
-                    },
-                  ),
-                ],
-              ),
-              floatingActionButton: Consumer(builder: (context, ref, _) {
-                final todoState = ref.watch(todosNotifierProvider.add);
-
-                print('Todo state: $todoState');
-
-                return switch (todoState.state) {
-                  IdleMutation() => FloatingActionButton(
+                appBar: AppBar(
+                  title: const Text('Example'),
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.delete),
                       onPressed: () {
-                        state.insertItemInBetween();
-
-                        // setState(() {
-                        //   _items.add(ListItemNotifier());
-                        // });
-
-                        // ref.read(todosNotifierProvider.notifier).add(
-                        //       Todo(id: DateTime.now().millisecond, description: "Test", completed: false),
-                        //     );
+                        // Clear all data in the state and the DB
+                        ref.read(todosNotifierProvider.notifier).clearAllData();
                       },
-                      child: const Icon(Icons.add),
                     ),
-                  PendingMutation() => const CircularProgressIndicator(),
-                  ErrorMutation() => ElevatedButton(
-                      onPressed: () {
-                        // We can retry the side-effect by calling the mutation again
-                        ref.read(todosNotifierProvider.add).call(
-                              Todo(id: DateTime.now().millisecond, description: "Test", completed: false),
-                            );
-                      },
-                      child: const Text('Retry'),
-                    ),
-                  SuccessMutation() => const Text('Todo added!'),
-                };
-              }),
-              body:
-                  //  Column(
-                  //   children: [
-                  //     Expanded(
-                  //       child: todos.when(data: (todos) {
-                  //         return ListView.builder(
-                  //           itemCount: todos.length,
-                  //           itemBuilder: (context, index) {
-                  //             final Todo todo = todos[index];
-                  //             return Padding(
-                  //               padding: const EdgeInsets.all(8.0),
-                  //               child: ListTile(
-                  //                 title: Text(todo.id.toString()),
-                  //                 subtitle: Text('Status: ${todo.completed}'),
-                  //                 trailing: Checkbox(
-                  //                   value: todo.completed,
-                  //                   onChanged: (value) {
-                  //                     // update todo state
-                  //                     ref.read(todosNotifierProvider.notifier).updateTodo(
-                  //                           Todo(
-                  //                             id: todo.id,
-                  //                             description: todo.description,
-                  //                             completed: value ?? false,
-                  //                           ),
-                  //                         );
-                  //                   },
-                  //                 ),
-                  //               ),
-                  //             );
-                  //           },
-                  //         );
-                  //       }, error: (e, stk) {
-                  //         return Center(
-                  //           child: Text('Error: $e'),
-                  //         );
-                  //       }, loading: () {
-                  //         return const Center(child: CircularProgressIndicator());
-                  //       }),
-                  //     ),
-                  //     SizedBox(
-                  //       height: 50,
-                  //     ),
-                  //   ],
-                  // )
-                  ListenableBuilder(
-                      listenable: state,
-                      builder: (context, _) {
+                  ],
+                ),
+                floatingActionButton: Consumer(builder: (context, ref, _) {
+                  final todoState = ref.watch(todosNotifierProvider.add);
+
+                  print('Todo state: $todoState');
+
+                  return switch (todoState.state) {
+                    IdleMutation() => FloatingActionButton(
+                        onPressed: () {
+                          // state.insertItemInBetween();
+
+                          // setState(() {
+                          //   _items.add(ListItemNotifier());
+                          // });
+
+                          ref.read(todosNotifierProvider.notifier).add(
+                                Todo(id: DateTime.now().millisecond, description: "Test", completed: false),
+                              );
+                        },
+                        child: const Icon(Icons.add),
+                      ),
+                    PendingMutation() => const CircularProgressIndicator(),
+                    ErrorMutation() => ElevatedButton(
+                        onPressed: () {
+                          // We can retry the side-effect by calling the mutation again
+                          ref.read(todosNotifierProvider.add).call(
+                                Todo(id: DateTime.now().millisecond, description: "Test", completed: false),
+                              );
+                        },
+                        child: const Text('Retry'),
+                      ),
+                    SuccessMutation() => const Text('Todo added!'),
+                  };
+                }),
+                body: Column(
+                  children: [
+                    Expanded(
+                      child: todos.when(data: (todos) {
                         return ListView.builder(
-                          itemCount: state.items.length,
+                          itemCount: todos.length,
                           itemBuilder: (context, index) {
-                            final item = state.items[index];
+                            final Todo todo = todos[index];
+                            return Consumer(builder: (context, ref, _) {
+                              final todoState = ref.watch(todoNotifierProvider(todo));
 
-                            // return item.widget;
-                            return ListItemBuilder(
-                              index: index,
-                              item: item,
-                            );
+                              return Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: ListTile(
+                                  title: Text(todoState.id.toString()),
+                                  subtitle: Consumer(builder: (context, ref, _) {
+                                    final status =
+                                        ref.watch(todoNotifierProvider(todo).select((todo) => todo.completed));
+
+                                    return Text('Status: $status');
+                                  }),
+                                  trailing: Consumer(builder: (context, ref, _) {
+                                    final status =
+                                        ref.watch(todoNotifierProvider(todo).select((todo) => todo.completed));
+
+                                    return Checkbox(
+                                      value: status,
+                                      onChanged: (value) {
+                                        // update todo state
+                                        ref.read(todoNotifierProvider(todo).notifier).updateTodo(
+                                              Todo(
+                                                id: todoState.id,
+                                                description: todoState.description,
+                                                completed: value ?? false,
+                                              ),
+                                            );
+                                      },
+                                    );
+                                  }),
+                                ),
+                              );
+                            });
                           },
                         );
+                      }, error: (e, stk) {
+                        return Center(
+                          child: Text('Error: $e'),
+                        );
+                      }, loading: () {
+                        return const Center(child: CircularProgressIndicator());
                       }),
-              // ListView rebuilding - all items rebuild on list items updates
+                    ),
+                    SizedBox(
+                      height: 50,
+                    ),
+                  ],
+                )
+                // ListenableBuilder(
+                //     listenable: state,
+                //     builder: (context, _) {
+                //       return ListView.builder(
+                //         itemCount: state.items.length,
+                //         itemBuilder: (context, index) {
+                //           final item = state.items[index];
 
-              //     ListView.builder(
-              //   itemCount: _items.length,
-              //   itemBuilder: (context, index) {
-              //     final item = _items[index];
+                //           // return item.widget;
+                //           return ListItemBuilder(
+                //             index: index,
+                //             item: item,
+                //           );
+                //         },
+                //       );
+                //     }),
+                // ListView rebuilding - all items rebuild on list items updates
 
-              //     // return item.widget;
-              //     return Padding(
-              //       padding: const EdgeInsets.all(8.0),
-              //       child: ListenableBuilder(
-              //           listenable: item,
-              //           builder: (context, _) {
-              //             return FloatingActionButton(
-              //               onPressed: () {
-              //                 item.increment();
-              //               },
-              //               child: Text(
-              //                 'Item $index: ${item.count}',
-              //                 style: const TextStyle(fontSize: 24),
-              //               ),
-              //             );
-              //           }),
-              //     );
-              //   },
-              // )),
-            ));
+                //     ListView.builder(
+                //   itemCount: _items.length,
+                //   itemBuilder: (context, index) {
+                //     final item = _items[index];
+
+                //     // return item.widget;
+                //     return Padding(
+                //       padding: const EdgeInsets.all(8.0),
+                //       child: ListenableBuilder(
+                //           listenable: item,
+                //           builder: (context, _) {
+                //             return FloatingActionButton(
+                //               onPressed: () {
+                //                 item.increment();
+                //               },
+                //               child: Text(
+                //                 'Item $index: ${item.count}',
+                //                 style: const TextStyle(fontSize: 24),
+                //               ),
+                //             );
+                //           }),
+                //     );
+                //   },
+                // )),
+                ));
       },
     );
   }
@@ -378,6 +391,21 @@ class TodosNotifier extends _$TodosNotifier {
 
   Future<void> clearAllData() async {
     state = AsyncData([]);
+  }
+}
+
+@riverpod
+@JsonPersist()
+class TodoNotifier extends _$TodoNotifier {
+  TodoNotifier();
+
+  @override
+  Todo build(Todo todo) {
+    return todo;
+  }
+
+  Future<void> updateTodo(Todo todo) async {
+    state = todo;
   }
 }
 

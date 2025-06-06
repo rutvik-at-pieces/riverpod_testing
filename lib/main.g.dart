@@ -211,6 +211,102 @@ final class _$TodosNotifier$Add
       _$TodosNotifier$Add(element, state: state, key: key);
 }
 
+@ProviderFor(TodoNotifier)
+@JsonPersist()
+const todoNotifierProvider = TodoNotifierFamily._();
+
+final class TodoNotifierProvider extends $NotifierProvider<TodoNotifier, Todo> {
+  const TodoNotifierProvider._(
+      {required TodoNotifierFamily super.from, required Todo super.argument})
+      : super(
+          retry: null,
+          name: r'todoNotifierProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$todoNotifierHash();
+
+  @override
+  String toString() {
+    return r'todoNotifierProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  TodoNotifier create() => TodoNotifier();
+
+  @$internal
+  @override
+  $NotifierProviderElement<TodoNotifier, Todo> $createElement(
+          $ProviderPointer pointer) =>
+      $NotifierProviderElement(pointer);
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(Todo value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $ValueProvider<Todo>(value),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is TodoNotifierProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$todoNotifierHash() => r'facb66023d5fb875bbac4220104b798a9792a99c';
+
+final class TodoNotifierFamily extends $Family
+    with $ClassFamilyOverride<TodoNotifier, Todo, Todo, Todo, Todo> {
+  const TodoNotifierFamily._()
+      : super(
+          retry: null,
+          name: r'todoNotifierProvider',
+          dependencies: null,
+          $allTransitiveDependencies: null,
+          isAutoDispose: true,
+        );
+
+  TodoNotifierProvider call(
+    Todo todo,
+  ) =>
+      TodoNotifierProvider._(argument: todo, from: this);
+
+  @override
+  String toString() => r'todoNotifierProvider';
+}
+
+abstract class _$TodoNotifierBase extends $Notifier<Todo> {
+  late final _$args = ref.$arg as Todo;
+  Todo get todo => _$args;
+
+  Todo build(
+    Todo todo,
+  );
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build(
+      _$args,
+    );
+    final ref = this.ref as $Ref<Todo>;
+    final element = ref.element
+        as $ClassProviderElement<AnyNotifier<Todo>, Todo, Object?, Object?>;
+    element.handleValue(ref, created);
+  }
+}
+
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
 
@@ -240,6 +336,33 @@ abstract class _$TodosNotifier extends _$TodosNotifierBase
             return (e as List)
                 .map((e) => Todo.fromJson(e as Map<String, Object?>))
                 .toList();
+          },
+      options: options,
+    );
+  }
+}
+
+abstract class _$TodoNotifier extends _$TodoNotifierBase
+    with Persistable<Todo, String, String> {
+  @override
+  FutureOr<void> persist({
+    String? key,
+    required FutureOr<Storage<String, String>> storage,
+    String Function(Todo state)? encode,
+    Todo Function(String encoded)? decode,
+    StorageOptions options = const StorageOptions(),
+  }) {
+    late final args = todo;
+    late final resolvedKey = 'TodoNotifier($args)';
+
+    return super.persist(
+      key: key ?? resolvedKey,
+      storage: storage,
+      encode: encode ?? (value) => $jsonCodex.encode(state),
+      decode: decode ??
+          (encoded) {
+            final e = $jsonCodex.decode(encoded);
+            return Todo.fromJson(e as Map<String, Object?>);
           },
       options: options,
     );
