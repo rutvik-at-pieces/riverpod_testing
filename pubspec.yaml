@@ -1,0 +1,53 @@
+name: riverpod_testing
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ">=3.6.1 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: 3.0.0-dev.15
+  path: ^1.9.1
+  path_provider: ^2.1.5
+  riverpod_annotation: ^3.0.0-dev.14
+  riverpod_sqflite: 0.1.1
+  sqflite: ^2.4.2
+  runtime_client:
+    git:
+      url: git@github.com:open-runtime/runtime_client.git
+  runtime_common_library:
+    git:
+      url: git@github.com:open-runtime/generated_runtime.git
+      path: ./sdk/http/dart/common
+  core_openapi:
+    git:
+      url: git@github.com:open-runtime/generated_runtime.git
+      path: ./sdk/http/dart/core/
+  # hooks_riverpod: 3.0.0-dev.15
+  # flutter_hooks: ^0.21.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  custom_lint: ^0.7.5
+  riverpod_lint: 
+  riverpod_generator: 
+  build_runner: ^2.4.15
+
+dependency_overrides:
+  custom_lint: ^0.7.5
+  uuid: ^4.5.1
+  pieces_core_connector:
+    path: ../pieces_core_connector
+  flutter_hooks: 0.21.1-pre.4
+  riverpod: 3.0.0-dev.15
+
+flutter:
+  uses-material-design: true
+
+formatter:
+  trailing_commas: preserve
