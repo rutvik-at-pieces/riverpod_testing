@@ -114,50 +114,83 @@ class _MyAppState extends ConsumerState<MyApp> {
                     SuccessMutation() => const Text('Todo added!'),
                   };
                 }),
-                body: Column(
+                body: //
+                    Column(
                   children: [
                     Expanded(
                       child: todos.when(data: (todos) {
+                        // Rebuilds enitire list on item updates.
                         return ListView.builder(
                           itemCount: todos.length,
                           itemBuilder: (context, index) {
                             final Todo todo = todos[index];
-                            return Consumer(builder: (context, ref, _) {
-                              final todoState = ref.watch(todoNotifierProvider(todo));
 
-                              return Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: ListTile(
-                                  title: Text(todoState.id.toString()),
-                                  subtitle: Consumer(builder: (context, ref, _) {
-                                    final status =
-                                        ref.watch(todoNotifierProvider(todo).select((todo) => todo.completed));
-
-                                    return Text('Status: $status');
-                                  }),
-                                  trailing: Consumer(builder: (context, ref, _) {
-                                    final status =
-                                        ref.watch(todoNotifierProvider(todo).select((todo) => todo.completed));
-
-                                    return Checkbox(
-                                      value: status,
-                                      onChanged: (value) {
-                                        // update todo state
-                                        ref.read(todoNotifierProvider(todo).notifier).updateTodo(
-                                              Todo(
-                                                id: todoState.id,
-                                                description: todoState.description,
-                                                completed: value ?? false,
-                                              ),
-                                            );
-                                      },
-                                    );
-                                  }),
+                            return Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: ListTile(
+                                title: Text("id ${todo.id}"),
+                                subtitle: Text('Status: ${todo.completed}'),
+                                trailing: Checkbox(
+                                  value: todo.completed,
+                                  onChanged: (value) {
+                                    ref.read(todosNotifierProvider.notifier).updateTodo(
+                                          Todo(
+                                            id: todo.id,
+                                            description: todo.description,
+                                            completed: value ?? false,
+                                          ),
+                                        );
+                                  },
                                 ),
-                              );
-                            });
+                              ),
+                            );
                           },
                         );
+
+                        // Rebuilds only the changed ui widget on item updates.
+
+                        // return ListView.builder(
+                        //   itemCount: todos.length,
+                        //   itemBuilder: (context, index) {
+                        //     final Todo todo = todos[index];
+                        //     final TodoNotifierProvider todoNotifier = todoNotifierProvider(todo);
+                        //     return Consumer(builder: (context, ref, _) {
+                        //       final todoState = ref.watch(todoNotifier);
+
+                        //       return Padding(
+                        //         padding: const EdgeInsets.all(8.0),
+                        //         child: ListTile(
+                        //           title: Text(todoState.id.toString()),
+                        //           subtitle: RepaintBoundary(
+                        //             child: Consumer(builder: (context, ref, _) {
+                        //               final status = ref.watch(todoNotifier.select((todo) => todo.completed));
+
+                        //               return Text('Status: $status');
+                        //             }),
+                        //           ),
+                        //           trailing: RepaintBoundary(
+                        //             child: Consumer(builder: (context, ref, _) {
+                        //               final status = ref.watch(todoNotifier.select((todo) => todo.completed));
+
+                        //               return Checkbox(
+                        //                 value: status,
+                        //                 onChanged: (value) {
+                        //                   ref.read(todoNotifier.notifier).updateTodo(
+                        //                         Todo(
+                        //                           id: todoState.id,
+                        //                           description: todoState.description,
+                        //                           completed: value ?? false,
+                        //                         ),
+                        //                       );
+                        //                 },
+                        //               );
+                        //             }),
+                        //           ),
+                        //         ),
+                        //       );
+                        //     });
+                        //   },
+                        // );
                       }, error: (e, stk) {
                         return Center(
                           child: Text('Error: $e'),
@@ -171,6 +204,8 @@ class _MyAppState extends ConsumerState<MyApp> {
                     ),
                   ],
                 )
+                // ListView rebuilding - doesn't rebuilds items on scroll.
+
                 // ListenableBuilder(
                 //     listenable: state,
                 //     builder: (context, _) {
@@ -187,6 +222,7 @@ class _MyAppState extends ConsumerState<MyApp> {
                 //         },
                 //       );
                 //     }),
+
                 // ListView rebuilding - all items rebuild on list items updates
 
                 //     ListView.builder(
@@ -212,7 +248,7 @@ class _MyAppState extends ConsumerState<MyApp> {
                 //           }),
                 //     );
                 //   },
-                // )),
+                // ),
                 ));
       },
     );
@@ -405,7 +441,10 @@ class TodoNotifier extends _$TodoNotifier {
   }
 
   Future<void> updateTodo(Todo todo) async {
+    // update cached state
     state = todo;
+
+    // update in db
   }
 }
 
