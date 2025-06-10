@@ -66,7 +66,6 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(listItemsProvider);
     final todos = ref.watch(todosNotifierProvider);
 
     final items = ListView.builder(
@@ -145,27 +144,38 @@ class _MyAppState extends ConsumerState<MyApp> {
                             ),
                           ],
                         ),
-                        // ListView rebuilding - doesn't rebuilds items on scroll.
-
+                        // ListView rebuilding - doesn't repaints items on scroll.
                         Column(
                           children: [
+                            SizedBox(
+                              height: 20,
+                            ),
+                            Text(
+                              'ListView with ListenableBuilder',
+                            ),
+                            SizedBox(
+                              height: 20,
+                            ),
                             Expanded(
-                              child: ListenableBuilder(
-                                  listenable: state,
-                                  builder: (context, _) {
-                                    return ListView.builder(
-                                      itemCount: state.items.length,
-                                      itemBuilder: (context, index) {
-                                        final item = state.items[index];
+                              child: Consumer(builder: (context, ref, _) {
+                                final state = ref.watch(listItemsProvider);
 
-                                        // return item.widget;
-                                        return ListItemBuilder(
-                                          index: index,
-                                          item: item,
-                                        );
-                                      },
-                                    );
-                                  }),
+                                return ListenableBuilder(
+                                    listenable: state,
+                                    builder: (context, _) {
+                                      return ListView.builder(
+                                        itemCount: state.items.length,
+                                        itemBuilder: (context, index) {
+                                          final item = state.items[index];
+
+                                          return ListItemBuilder(
+                                            index: index,
+                                            item: item,
+                                          );
+                                        },
+                                      );
+                                    });
+                              }),
                             ),
                             ElevatedButton(
                               onPressed: () {
@@ -177,16 +187,23 @@ class _MyAppState extends ConsumerState<MyApp> {
                         ),
 
                         // ListView rebuilding - all items rebuild on list items updates
-
                         Column(
                           children: [
+                            SizedBox(
+                              height: 20,
+                            ),
+                            Text(
+                              'Regular ListView',
+                            ),
+                            SizedBox(
+                              height: 20,
+                            ),
                             Expanded(
                               child: ListView.builder(
                                 itemCount: _items.length,
                                 itemBuilder: (context, index) {
                                   final item = _items[index];
 
-                                  // return item.widget;
                                   return Padding(
                                     padding: const EdgeInsets.all(8.0),
                                     child: ListenableBuilder(
@@ -208,7 +225,9 @@ class _MyAppState extends ConsumerState<MyApp> {
                             ),
                             ElevatedButton(
                               onPressed: () {
-                                ref.read(listItemsProvider).addItem();
+                                setState(() {
+                                  _items.add(ListItemNotifier());
+                                });
                               },
                               child: const Text('Add Item'),
                             ),
@@ -218,7 +237,7 @@ class _MyAppState extends ConsumerState<MyApp> {
                           children: [
                             Expanded(
                               child: todos.when(data: (todos) {
-                                // Rebuilds enitire list on item updates.
+                                // repaints enitire list on item updates.
                                 return ListView.builder(
                                   itemCount: todos.length,
                                   itemBuilder: (context, index) {
@@ -275,7 +294,7 @@ class _MyAppState extends ConsumerState<MyApp> {
                           children: [
                             Expanded(
                               child: todos.when(data: (todos) {
-                                // Rebuilds only the changed ui widget on item updates.
+                                // repaints only the changed ui widget on item updates.
 
                                 return ListView.builder(
                                   itemCount: todos.length,
@@ -353,6 +372,14 @@ class _MyAppState extends ConsumerState<MyApp> {
   }
 }
 
+/// Adds [AutomaticKeepAliveClientMixin] to the widget to prevent it from being disposed of
+/// when user is scrolling through the list or when the widget is off-screen.
+///
+/// Note: As this widget is kept alive as long as the parent listview is alive, whenever
+/// the list count changes, it triggers re-builds on all items in the list and not just
+/// the items visible on the screen.
+///
+/// re-build refers to the build method being called again, not widget creation.
 class ListItemBuilder extends StatefulWidget {
   const ListItemBuilder({
     super.key,
@@ -369,7 +396,15 @@ class ListItemBuilder extends StatefulWidget {
 
 class _ListItemBuilderState extends State<ListItemBuilder> with AutomaticKeepAliveClientMixin {
   @override
+  void initState() {
+    super.initState();
+
+    print("ListItemBuilder: ${widget.index}");
+  }
+
+  @override
   Widget build(BuildContext context) {
+    print("ListItemBuilder build: ${widget.index}");
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: ListenableBuilder(
@@ -392,10 +427,6 @@ class _ListItemBuilderState extends State<ListItemBuilder> with AutomaticKeepAli
   // TODO: implement wantKeepAlive
   bool get wantKeepAlive => true;
 }
-
-// final listItemsProvider = ChangeNotifierProvider<ListItemsStateNotifier>(
-//   (ref) => ListItemsStateNotifier(),
-// );
 
 @riverpod
 ListItemsStateNotifier listItems(Ref ref) {
