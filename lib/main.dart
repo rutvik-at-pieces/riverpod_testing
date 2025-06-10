@@ -332,13 +332,11 @@ class _MyAppState extends ConsumerState<MyApp> {
                                       final Todo todo = todos[index];
                                       final TodoNotifierProvider todoNotifier = todoNotifierProvider(todo);
                                       return Consumer(builder: (context, ref, _) {
-                                        final todoState = ref.read(todoNotifier);
-
                                         return Padding(
                                           padding: const EdgeInsets.all(8.0),
                                           child: ListTile(
                                             title: RepaintBoundary(
-                                              child: Text(todoState.id.toString()),
+                                              child: Text(ref.read(todoNotifier).id.toString()),
                                             ),
                                             subtitle: RepaintBoundary(
                                               child: Consumer(builder: (context, ref, _) {
@@ -356,8 +354,8 @@ class _MyAppState extends ConsumerState<MyApp> {
                                                   onChanged: (value) {
                                                     ref.read(todoNotifier.notifier).updateTodo(
                                                           Todo(
-                                                            id: todoState.id,
-                                                            description: todoState.description,
+                                                            id: ref.read(todoNotifier).id,
+                                                            description: ref.read(todoNotifier).description,
                                                             completed: value ?? false,
                                                           ),
                                                         );
