@@ -16,6 +16,8 @@ part 'main.g.dart';
 
 late final Connector connectorApp;
 
+final anchorCardView = GlobalKey();
+
 void main() async {
   connectorApp = connector;
   await setupPiecesServices(
@@ -40,6 +42,10 @@ void main() async {
   );
 }
 
+final List<String> chatMessages = [];
+int id = 0;
+final chatMessanger = ChatMessagesManager();
+
 class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
@@ -60,196 +66,288 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    // final state = ref.watch(listItemsProvider);
+    final state = ref.watch(listItemsProvider);
     final todos = ref.watch(todosNotifierProvider);
+
+    final items = ListView.builder(
+      itemCount: chatMessages.length,
+      itemBuilder: (context, index) {
+        return chatMessanger.getMessageWidget(chatMessages[index]);
+      },
+    );
 
     return ParticleAesthetics(
       builder: (context) {
         return MaterialApp(
             darkTheme: ParticleTheme.dark(context),
             themeMode: ThemeMode.dark,
-            home: Scaffold(
-                appBar: AppBar(
-                  title: const Text('Example'),
-                  actions: [
-                    IconButton(
-                      icon: const Icon(Icons.delete),
-                      onPressed: () {
-                        // Clear all data in the state and the DB
-                        ref.read(todosNotifierProvider.notifier).clearAllData();
-                      },
-                    ),
-                  ],
-                ),
-                floatingActionButton: Consumer(builder: (context, ref, _) {
-                  final todoState = ref.watch(todosNotifierProvider.add);
-
-                  print('Todo state: $todoState');
-
-                  return switch (todoState.state) {
-                    IdleMutation() => FloatingActionButton(
+            home: Builder(builder: (context) {
+              return Scaffold(
+                  appBar: AppBar(
+                    title: const Text('Example'),
+                    actions: [
+                      IconButton(
+                        icon: const Icon(Icons.delete),
                         onPressed: () {
-                          // state.insertItemInBetween();
-
-                          // setState(() {
-                          //   _items.add(ListItemNotifier());
-                          // });
-
-                          ref.read(todosNotifierProvider.notifier).add(
-                                Todo(id: DateTime.now().millisecond, description: "Test", completed: false),
-                              );
+                          // Clear all data in the state and the DB
+                          ref.read(todosNotifierProvider.notifier).clearAllData();
                         },
-                        child: const Icon(Icons.add),
                       ),
-                    PendingMutation() => const CircularProgressIndicator(),
-                    ErrorMutation() => ElevatedButton(
-                        onPressed: () {
-                          // We can retry the side-effect by calling the mutation again
-                          ref.read(todosNotifierProvider.add).call(
-                                Todo(id: DateTime.now().millisecond, description: "Test", completed: false),
-                              );
-                        },
-                        child: const Text('Retry'),
-                      ),
-                    SuccessMutation() => const Text('Todo added!'),
-                  };
-                }),
-                body: //
-                    Column(
-                  children: [
-                    Expanded(
-                      child: todos.when(data: (todos) {
-                        // Rebuilds enitire list on item updates.
-                        return ListView.builder(
-                          itemCount: todos.length,
-                          itemBuilder: (context, index) {
-                            final Todo todo = todos[index];
+                    ],
+                  ),
+                  body: DefaultTabController(
+                    length: 5,
+                    child: TabBarView(
+                      children: [
+                        Column(
+                          children: [
+                            // Chat Messages
+                            Expanded(child: items),
 
-                            return Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: ListTile(
-                                title: Text("id ${todo.id}"),
-                                subtitle: Text('Status: ${todo.completed}'),
-                                trailing: Checkbox(
-                                  value: todo.completed,
-                                  onChanged: (value) {
-                                    ref.read(todosNotifierProvider.notifier).updateTodo(
-                                          Todo(
-                                            id: todo.id,
-                                            description: todo.description,
-                                            completed: value ?? false,
-                                          ),
-                                        );
+                            // List Items
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                ElevatedButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      id += 1;
+                                      chatMessages.add(id.toString());
+                                    });
                                   },
+                                  child: const Text('Add Item'),
                                 ),
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => Scaffold(
+                                          appBar: AppBar(
+                                            title: const Text('Chat Messages'),
+                                          ),
+                                          body: Column(
+                                            children: [
+                                              Expanded(
+                                                child: items,
+                                              )
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    );
+
+                                    setState(() {});
+                                  },
+                                  child: const Text('Navigage to Different Route'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        // ListView rebuilding - doesn't rebuilds items on scroll.
+
+                        Column(
+                          children: [
+                            Expanded(
+                              child: ListenableBuilder(
+                                  listenable: state,
+                                  builder: (context, _) {
+                                    return ListView.builder(
+                                      itemCount: state.items.length,
+                                      itemBuilder: (context, index) {
+                                        final item = state.items[index];
+
+                                        // return item.widget;
+                                        return ListItemBuilder(
+                                          index: index,
+                                          item: item,
+                                        );
+                                      },
+                                    );
+                                  }),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                ref.read(listItemsProvider).addItem();
+                              },
+                              child: const Text('Add Item'),
+                            ),
+                          ],
+                        ),
+
+                        // ListView rebuilding - all items rebuild on list items updates
+
+                        Column(
+                          children: [
+                            Expanded(
+                              child: ListView.builder(
+                                itemCount: _items.length,
+                                itemBuilder: (context, index) {
+                                  final item = _items[index];
+
+                                  // return item.widget;
+                                  return Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: ListenableBuilder(
+                                        listenable: item,
+                                        builder: (context, _) {
+                                          return FloatingActionButton(
+                                            onPressed: () {
+                                              item.increment();
+                                            },
+                                            child: Text(
+                                              'Item $index: ${item.count}',
+                                              style: const TextStyle(fontSize: 24),
+                                            ),
+                                          );
+                                        }),
+                                  );
+                                },
                               ),
-                            );
-                          },
-                        );
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                ref.read(listItemsProvider).addItem();
+                              },
+                              child: const Text('Add Item'),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          children: [
+                            Expanded(
+                              child: todos.when(data: (todos) {
+                                // Rebuilds enitire list on item updates.
+                                return ListView.builder(
+                                  itemCount: todos.length,
+                                  itemBuilder: (context, index) {
+                                    final Todo todo = todos[index];
 
-                        // Rebuilds only the changed ui widget on item updates.
+                                    return Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: ListTile(
+                                        title: Text("id ${todo.id}"),
+                                        subtitle: Text('Status: ${todo.completed}'),
+                                        trailing: Checkbox(
+                                          value: todo.completed,
+                                          onChanged: (value) {
+                                            ref.read(todosNotifierProvider.notifier).updateTodo(
+                                                  Todo(
+                                                    id: todo.id,
+                                                    description: todo.description,
+                                                    completed: value ?? false,
+                                                  ),
+                                                );
+                                          },
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              }, error: (e, stk) {
+                                return Center(
+                                  child: Text('Error: $e'),
+                                );
+                              }, loading: () {
+                                return const Center(child: CircularProgressIndicator());
+                              }),
+                            ),
+                            SizedBox(
+                              height: 50,
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                ref.read(todosNotifierProvider.notifier).add(
+                                      Todo(
+                                        id: DateTime.now().millisecondsSinceEpoch,
+                                        description: 'New Todo',
+                                        completed: false,
+                                      ),
+                                    );
+                              },
+                              child: const Text('Add Item'),
+                            ),
+                          ],
+                        ),
 
-                        // return ListView.builder(
-                        //   itemCount: todos.length,
-                        //   itemBuilder: (context, index) {
-                        //     final Todo todo = todos[index];
-                        //     final TodoNotifierProvider todoNotifier = todoNotifierProvider(todo);
-                        //     return Consumer(builder: (context, ref, _) {
-                        //       final todoState = ref.watch(todoNotifier);
+                        Column(
+                          children: [
+                            Expanded(
+                              child: todos.when(data: (todos) {
+                                // Rebuilds only the changed ui widget on item updates.
 
-                        //       return Padding(
-                        //         padding: const EdgeInsets.all(8.0),
-                        //         child: ListTile(
-                        //           title: Text(todoState.id.toString()),
-                        //           subtitle: RepaintBoundary(
-                        //             child: Consumer(builder: (context, ref, _) {
-                        //               final status = ref.watch(todoNotifier.select((todo) => todo.completed));
+                                return ListView.builder(
+                                  itemCount: todos.length,
+                                  itemBuilder: (context, index) {
+                                    final Todo todo = todos[index];
+                                    final TodoNotifierProvider todoNotifier = todoNotifierProvider(todo);
+                                    return Consumer(builder: (context, ref, _) {
+                                      final todoState = ref.watch(todoNotifier);
 
-                        //               return Text('Status: $status');
-                        //             }),
-                        //           ),
-                        //           trailing: RepaintBoundary(
-                        //             child: Consumer(builder: (context, ref, _) {
-                        //               final status = ref.watch(todoNotifier.select((todo) => todo.completed));
+                                      return Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: ListTile(
+                                          title: Text(todoState.id.toString()),
+                                          subtitle: RepaintBoundary(
+                                            child: Consumer(builder: (context, ref, _) {
+                                              final status = ref.watch(todoNotifier.select((todo) => todo.completed));
 
-                        //               return Checkbox(
-                        //                 value: status,
-                        //                 onChanged: (value) {
-                        //                   ref.read(todoNotifier.notifier).updateTodo(
-                        //                         Todo(
-                        //                           id: todoState.id,
-                        //                           description: todoState.description,
-                        //                           completed: value ?? false,
-                        //                         ),
-                        //                       );
-                        //                 },
-                        //               );
-                        //             }),
-                        //           ),
-                        //         ),
-                        //       );
-                        //     });
-                        //   },
-                        // );
-                      }, error: (e, stk) {
-                        return Center(
-                          child: Text('Error: $e'),
-                        );
-                      }, loading: () {
-                        return const Center(child: CircularProgressIndicator());
-                      }),
+                                              return Text('Status: $status');
+                                            }),
+                                          ),
+                                          trailing: RepaintBoundary(
+                                            child: Consumer(builder: (context, ref, _) {
+                                              final status = ref.watch(todoNotifier.select((todo) => todo.completed));
+
+                                              return Checkbox(
+                                                value: status,
+                                                onChanged: (value) {
+                                                  ref.read(todoNotifier.notifier).updateTodo(
+                                                        Todo(
+                                                          id: todoState.id,
+                                                          description: todoState.description,
+                                                          completed: value ?? false,
+                                                        ),
+                                                      );
+                                                },
+                                              );
+                                            }),
+                                          ),
+                                        ),
+                                      );
+                                    });
+                                  },
+                                );
+                              }, error: (e, stk) {
+                                return Center(
+                                  child: Text('Error: $e'),
+                                );
+                              }, loading: () {
+                                return const Center(child: CircularProgressIndicator());
+                              }),
+                            ),
+                            SizedBox(
+                              height: 50,
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                ref.read(todosNotifierProvider.notifier).add(
+                                      Todo(
+                                        id: DateTime.now().millisecondsSinceEpoch,
+                                        description: 'New Todo',
+                                        completed: false,
+                                      ),
+                                    );
+                              },
+                              child: const Text('Add Item'),
+                            ),
+                          ],
+                        )
+                      ],
                     ),
-                    SizedBox(
-                      height: 50,
-                    ),
-                  ],
-                )
-                // ListView rebuilding - doesn't rebuilds items on scroll.
-
-                // ListenableBuilder(
-                //     listenable: state,
-                //     builder: (context, _) {
-                //       return ListView.builder(
-                //         itemCount: state.items.length,
-                //         itemBuilder: (context, index) {
-                //           final item = state.items[index];
-
-                //           // return item.widget;
-                //           return ListItemBuilder(
-                //             index: index,
-                //             item: item,
-                //           );
-                //         },
-                //       );
-                //     }),
-
-                // ListView rebuilding - all items rebuild on list items updates
-
-                //     ListView.builder(
-                //   itemCount: _items.length,
-                //   itemBuilder: (context, index) {
-                //     final item = _items[index];
-
-                //     // return item.widget;
-                //     return Padding(
-                //       padding: const EdgeInsets.all(8.0),
-                //       child: ListenableBuilder(
-                //           listenable: item,
-                //           builder: (context, _) {
-                //             return FloatingActionButton(
-                //               onPressed: () {
-                //                 item.increment();
-                //               },
-                //               child: Text(
-                //                 'Item $index: ${item.count}',
-                //                 style: const TextStyle(fontSize: 24),
-                //               ),
-                //             );
-                //           }),
-                //     );
-                //   },
-                // ),
-                ));
+                  ));
+            }));
       },
     );
   }
@@ -448,9 +546,14 @@ class TodoNotifier extends _$TodoNotifier {
   }
 }
 
-// class AnchorCardView extends StatelessWidget {
+// class AnchorCardView extends StatefulWidget {
 //   const AnchorCardView({super.key});
 
+//   @override
+//   State<AnchorCardView> createState() => _AnchorCardViewState();
+// }
+
+// class _AnchorCardViewState extends State<AnchorCardView> {
 //   Future<String?> _fetchTitle() async {
 //     // String _path = "/Users/rutvik-pieces/work/runtime_client/example/lib/main.dart";
 //     String? result;
@@ -472,6 +575,11 @@ class TodoNotifier extends _$TodoNotifier {
 
 //   Stream<LocalAnchorPointMetadata> fetchAnchorData(LocalAnchorPoint point) {
 //     return AnchorRendering.streamAnchorPointMetadata(point: point);
+//   }
+
+//   @override
+//   void initState() {
+//     super.initState();
 //   }
 
 //   @override
@@ -521,3 +629,76 @@ class TodoNotifier extends _$TodoNotifier {
 //     );
 //   }
 // }
+
+class ChatMessagesManager {
+  // create a singleton
+
+  ChatMessagesManager._();
+  static final ChatMessagesManager _instance = ChatMessagesManager._();
+  factory ChatMessagesManager() {
+    return _instance;
+  }
+
+  Map<String, GlobalKey> messagesGlobalKey = {};
+
+  Widget getMessageWidget(String messageId) {
+    if (messagesGlobalKey[messageId] != null) {
+      return ChatMessage(
+        messageId: messageId,
+        key: messagesGlobalKey[messageId]!,
+      );
+    }
+
+    final key = messagesGlobalKey[messageId] ?? GlobalKey();
+
+    final messageWidget = ChatMessage(
+      messageId: messageId,
+      key: key,
+    );
+
+    messagesGlobalKey[messageId] = key;
+
+    return messageWidget;
+  }
+}
+
+class ChatMessage extends StatefulWidget {
+  const ChatMessage({
+    super.key,
+    required this.messageId,
+  });
+
+  final String messageId;
+
+  @override
+  State<ChatMessage> createState() => _ChatMessageState();
+}
+
+class _ChatMessageState extends State<ChatMessage> {
+  int count = 0;
+
+  @override
+  void initState() {
+    super.initState();
+
+    print("Message: ${widget.messageId}");
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: FloatingActionButton(
+        onPressed: () {
+          setState(() {
+            count++;
+          });
+        },
+        child: Text(
+          'Message Id ${widget.messageId}' " Count: $count",
+          style: TextStyle(color: Colors.black87, fontSize: 16),
+        ),
+      ),
+    );
+  }
+}
