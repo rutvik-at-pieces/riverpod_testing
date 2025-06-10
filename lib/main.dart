@@ -66,8 +66,6 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    final todos = ref.watch(todosNotifierProvider);
-
     final items = ListView.builder(
       itemCount: chatMessages.length,
       itemBuilder: (context, index) {
@@ -151,7 +149,7 @@ class _MyAppState extends ConsumerState<MyApp> {
                               height: 20,
                             ),
                             Text(
-                              'ListView with ListenableBuilder',
+                              'ListView with ListItemBuilder',
                             ),
                             SizedBox(
                               height: 20,
@@ -186,7 +184,9 @@ class _MyAppState extends ConsumerState<MyApp> {
                           ],
                         ),
 
-                        // ListView rebuilding - all items rebuild on list items updates
+                        // Regular ListView with no AutomaticKeepAliveClientMixin on list item.
+                        // By default, items are created and disposed of as they enter/exit the scrolling view.
+                        // This is costlier when user is scrolling within a chat messages list.
                         Column(
                           children: [
                             SizedBox(
@@ -233,43 +233,61 @@ class _MyAppState extends ConsumerState<MyApp> {
                             ),
                           ],
                         ),
+                        // Builds a list of todos watching the todosNotifierProvider.
+                        // Changes from individual todos are propagated through the change
+                        // in the todosNotifierProvider state.
+                        // As a result, the entire list is re-build when a todo is updated,
+                        // instead of rebuilding the part of the todo widget which depended
+                        // on the changed value.
                         Column(
                           children: [
+                            SizedBox(
+                              height: 20,
+                            ),
+                            Text(
+                              'ListView with Todos state managed by TodoNotifierProvider',
+                            ),
+                            SizedBox(
+                              height: 20,
+                            ),
                             Expanded(
-                              child: todos.when(data: (todos) {
-                                // repaints enitire list on item updates.
-                                return ListView.builder(
-                                  itemCount: todos.length,
-                                  itemBuilder: (context, index) {
-                                    final Todo todo = todos[index];
+                              child: Consumer(builder: (context, ref, _) {
+                                final todos = ref.watch(todosNotifierProvider);
 
-                                    return Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: ListTile(
-                                        title: Text("id ${todo.id}"),
-                                        subtitle: Text('Status: ${todo.completed}'),
-                                        trailing: Checkbox(
-                                          value: todo.completed,
-                                          onChanged: (value) {
-                                            ref.read(todosNotifierProvider.notifier).updateTodo(
-                                                  Todo(
-                                                    id: todo.id,
-                                                    description: todo.description,
-                                                    completed: value ?? false,
-                                                  ),
-                                                );
-                                          },
+                                return todos.when(data: (todos) {
+                                  return ListView.builder(
+                                    itemCount: todos.length,
+                                    itemBuilder: (context, index) {
+                                      final Todo todo = todos[index];
+
+                                      return Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: ListTile(
+                                          title: Text("id ${todo.id}"),
+                                          subtitle: Text('Status: ${todo.completed}'),
+                                          trailing: Checkbox(
+                                            value: todo.completed,
+                                            onChanged: (value) {
+                                              ref.read(todosNotifierProvider.notifier).updateTodo(
+                                                    Todo(
+                                                      id: todo.id,
+                                                      description: todo.description,
+                                                      completed: value ?? false,
+                                                    ),
+                                                  );
+                                            },
+                                          ),
                                         ),
-                                      ),
-                                    );
-                                  },
-                                );
-                              }, error: (e, stk) {
-                                return Center(
-                                  child: Text('Error: $e'),
-                                );
-                              }, loading: () {
-                                return const Center(child: CircularProgressIndicator());
+                                      );
+                                    },
+                                  );
+                                }, error: (e, stk) {
+                                  return Center(
+                                    child: Text('Error: $e'),
+                                  );
+                                }, loading: () {
+                                  return const Center(child: CircularProgressIndicator());
+                                });
                               }),
                             ),
                             SizedBox(
@@ -289,61 +307,77 @@ class _MyAppState extends ConsumerState<MyApp> {
                             ),
                           ],
                         ),
-
+                        // State of each todo is watched individually using the todoNotifierProvider.
+                        // This allows us to re-build only the changed todo item when a todo is updated.
+                        // Allows for more granular control over the rebuilding phase.
                         Column(
                           children: [
+                            SizedBox(
+                              height: 20,
+                            ),
+                            Text(
+                              'ListView with each Todo state managed by TodoNotifierProvider',
+                            ),
+                            SizedBox(
+                              height: 20,
+                            ),
                             Expanded(
-                              child: todos.when(data: (todos) {
-                                // repaints only the changed ui widget on item updates.
+                              child: Consumer(builder: (context, ref, _) {
+                                final todos = ref.watch(todosNotifierProvider);
 
-                                return ListView.builder(
-                                  itemCount: todos.length,
-                                  itemBuilder: (context, index) {
-                                    final Todo todo = todos[index];
-                                    final TodoNotifierProvider todoNotifier = todoNotifierProvider(todo);
-                                    return Consumer(builder: (context, ref, _) {
-                                      final todoState = ref.watch(todoNotifier);
+                                return todos.when(data: (todos) {
+                                  return ListView.builder(
+                                    itemCount: todos.length,
+                                    itemBuilder: (context, index) {
+                                      final Todo todo = todos[index];
+                                      final TodoNotifierProvider todoNotifier = todoNotifierProvider(todo);
+                                      return Consumer(builder: (context, ref, _) {
+                                        final todoState = ref.read(todoNotifier);
 
-                                      return Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: ListTile(
-                                          title: Text(todoState.id.toString()),
-                                          subtitle: RepaintBoundary(
-                                            child: Consumer(builder: (context, ref, _) {
-                                              final status = ref.watch(todoNotifier.select((todo) => todo.completed));
+                                        return Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: ListTile(
+                                            title: RepaintBoundary(
+                                              child: Text(todoState.id.toString()),
+                                            ),
+                                            subtitle: RepaintBoundary(
+                                              child: Consumer(builder: (context, ref, _) {
+                                                final status = ref.watch(todoNotifier.select((todo) => todo.completed));
 
-                                              return Text('Status: $status');
-                                            }),
+                                                return Text('Status: $status');
+                                              }),
+                                            ),
+                                            trailing: RepaintBoundary(
+                                              child: Consumer(builder: (context, ref, _) {
+                                                final status = ref.watch(todoNotifier.select((todo) => todo.completed));
+
+                                                return Checkbox(
+                                                  value: status,
+                                                  onChanged: (value) {
+                                                    ref.read(todoNotifier.notifier).updateTodo(
+                                                          Todo(
+                                                            id: todoState.id,
+                                                            description: todoState.description,
+                                                            completed: value ?? false,
+                                                          ),
+                                                        );
+                                                  },
+                                                );
+                                              }),
+                                            ),
+                                            // leading: CircularProgressIndicator(),
                                           ),
-                                          trailing: RepaintBoundary(
-                                            child: Consumer(builder: (context, ref, _) {
-                                              final status = ref.watch(todoNotifier.select((todo) => todo.completed));
-
-                                              return Checkbox(
-                                                value: status,
-                                                onChanged: (value) {
-                                                  ref.read(todoNotifier.notifier).updateTodo(
-                                                        Todo(
-                                                          id: todoState.id,
-                                                          description: todoState.description,
-                                                          completed: value ?? false,
-                                                        ),
-                                                      );
-                                                },
-                                              );
-                                            }),
-                                          ),
-                                        ),
-                                      );
-                                    });
-                                  },
-                                );
-                              }, error: (e, stk) {
-                                return Center(
-                                  child: Text('Error: $e'),
-                                );
-                              }, loading: () {
-                                return const Center(child: CircularProgressIndicator());
+                                        );
+                                      });
+                                    },
+                                  );
+                                }, error: (e, stk) {
+                                  return Center(
+                                    child: Text('Error: $e'),
+                                  );
+                                }, loading: () {
+                                  return const Center(child: CircularProgressIndicator());
+                                });
                               }),
                             ),
                             SizedBox(
