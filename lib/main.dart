@@ -149,7 +149,7 @@ class _MyAppState extends ConsumerState<MyApp> {
                               height: 20,
                             ),
                             Text(
-                              'ListView with ListItemBuilder',
+                              'ListView with AutomaticKeepAliveClientMixin on list item',
                             ),
                             SizedBox(
                               height: 20,
@@ -277,6 +277,7 @@ class _MyAppState extends ConsumerState<MyApp> {
                                                   );
                                             },
                                           ),
+                                          leading: CircularProgressIndicator(),
                                         ),
                                       );
                                     },
@@ -335,35 +336,29 @@ class _MyAppState extends ConsumerState<MyApp> {
                                         return Padding(
                                           padding: const EdgeInsets.all(8.0),
                                           child: ListTile(
-                                            title: RepaintBoundary(
-                                              child: Text(ref.read(todoNotifier).id.toString()),
-                                            ),
-                                            subtitle: RepaintBoundary(
-                                              child: Consumer(builder: (context, ref, _) {
-                                                final status = ref.watch(todoNotifier.select((todo) => todo.completed));
+                                            title: Text(ref.read(todoNotifier).id.toString()),
+                                            subtitle: Consumer(builder: (context, ref, _) {
+                                              final status = ref.watch(todoNotifier.select((todo) => todo.completed));
 
-                                                return Text('Status: $status');
-                                              }),
-                                            ),
-                                            trailing: RepaintBoundary(
-                                              child: Consumer(builder: (context, ref, _) {
-                                                final status = ref.watch(todoNotifier.select((todo) => todo.completed));
+                                              return Text('Status: $status');
+                                            }),
+                                            trailing: Consumer(builder: (context, ref, _) {
+                                              final status = ref.watch(todoNotifier.select((todo) => todo.completed));
 
-                                                return Checkbox(
-                                                  value: status,
-                                                  onChanged: (value) {
-                                                    ref.read(todoNotifier.notifier).updateTodo(
-                                                          Todo(
-                                                            id: ref.read(todoNotifier).id,
-                                                            description: ref.read(todoNotifier).description,
-                                                            completed: value ?? false,
-                                                          ),
-                                                        );
-                                                  },
-                                                );
-                                              }),
-                                            ),
-                                            // leading: CircularProgressIndicator(),
+                                              return Checkbox(
+                                                value: status,
+                                                onChanged: (value) {
+                                                  ref.read(todoNotifier.notifier).updateTodo(
+                                                        Todo(
+                                                          id: ref.read(todoNotifier).id,
+                                                          description: ref.read(todoNotifier).description,
+                                                          completed: value ?? false,
+                                                        ),
+                                                      );
+                                                },
+                                              );
+                                            }),
+                                            leading: RepaintBoundary(child: CircularProgressIndicator()),
                                           ),
                                         );
                                       });
@@ -749,6 +744,7 @@ class _ChatMessageState extends State<ChatMessage> {
 
   @override
   Widget build(BuildContext context) {
+    print("Message build: ${widget.messageId}");
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: FloatingActionButton(
